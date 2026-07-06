@@ -478,4 +478,3 @@ dev = [
 
 ---
 
-> **Ready for implementation.** Start from Micro-Task **0.1** and proceed sequentially. Each task is self-contained — you can prompt me: _"Execute Micro-Task X.Y"_ and I will generate the complete, production-ready code for that task.
