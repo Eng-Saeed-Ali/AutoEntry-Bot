@@ -53,3 +53,7 @@ migrations/versions/*.pyc
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+#agent
+
+AGENT_HANDOFF.md
