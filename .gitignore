@@ -1,0 +1,55 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+*.so
+
+# --- Virtual Environment ---
+.venv/
+venv/
+env/
+.env
+*.env.local
+*.env.production
+
+# --- IDE / Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# --- Project-Specific ---
+*.xlsx
+!fixtures/*.xlsx
+
+# --- Docker ---
+.docker/
+docker-compose.override.yml
+
+# --- Testing ---
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# --- Type Checking ---
+.mypy_cache/
+
+# --- Logging ---
+*.log
+logs/
+
+# --- Alembic ---
+migrations/versions/*.pyc
+
+# --- OS ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini

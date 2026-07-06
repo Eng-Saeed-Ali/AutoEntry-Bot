@@ -1,0 +1,169 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "autoentry-bot"
+version = "0.1.0"
+description = "Enterprise Workflow Automation Bot — Multi-Tenant Inventory Reconciliation via Telegram"
+readme = "README.md"
+license = {text = "Proprietary"}
+requires-python = ">=3.12"
+authors = [
+    {name = "AutoEntry Team"},
+]
+keywords = ["telegram-bot", "inventory", "automation", "hexagonal-architecture"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: AsyncIO",
+]
+
+dependencies = [
+    "aiogram>=3.7,<4.0",
+    "polars>=1.0,<2.0",
+    "openpyxl>=3.1,<4.0",
+    "pandera>=0.20,<0.22",
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+    "sqlalchemy[asyncio]>=2.0,<3.0",
+    "asyncpg>=0.29,<1.0",
+    "alembic>=1.13,<2.0",
+    "structlog>=24.1,<25.0",
+    "python-dotenv>=1.0,<2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "pytest-cov>=5.0,<6.0",
+    "ruff>=0.4,<1.0",
+    "mypy>=1.10,<2.0",
+    "import-linter>=2.0,<3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/autoentry/bot"
+Documentation = "https://github.com/autoentry/bot/blob/main/ARCHITECTURE.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = [
+    "migrations/",
+    ".venv/",
+    "__pycache__/",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "ASYNC", # flake8-async
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+force-sort-within-sections = true
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unused_returns = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "aiogram.*",
+    "openpyxl.*",
+    "pandera.*",
+]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "--strict-markers --cov=src --cov-report=term-missing --cov-report=html"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests that require Docker services",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.importlinter]
+root_package = "src"
+contract_types = ["layers"]
+
+[[tool.importlinter.contracts]]
+name = "domain-independence"
+type = "independence"
+modules = ["src.domain"]
+independent_of = [
+    "src.infrastructure",
+    "src.presentation",
+]
+
+[[tool.importlinter.contracts]]
+name = "application-boundary"
+type = "independence"
+modules = ["src.application"]
+independent_of = [
+    "src.infrastructure",
+    "src.presentation",
+]
+
+[[tool.importlinter.contracts]]
+name = "infrastructure-boundary"
+type = "independence"
+modules = ["src.infrastructure"]
+independent_of = [
+    "src.presentation",
+]
