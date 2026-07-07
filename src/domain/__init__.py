@@ -9,13 +9,22 @@ standard library.
 Exports:
     - Value Objects: Sku, Quantity, StoreId, TenantId, TelegramUserId,
       ItemName, DiffAmount, ExcelFileChecksum, DiscrepancyStatus
-    - Entities: (Phase 1.2 — `src.domain.models`)
+    - Entities: Tenant, InventoryItem, DiscrepancyItem,
+      InventorySnapshot, TelegramUser
     - Ports: (Phase 1.4 — `src.domain.ports`)
     - Services: (Phase 1.6 — `src.domain.services`)
     - Exceptions: (Phase 1.3 — `src.domain.exceptions`)
 """
 
 from __future__ import annotations
+
+from src.domain.models import (
+    DiscrepancyItem,
+    InventoryItem,
+    InventorySnapshot,
+    TelegramUser,
+    Tenant,
+)
 
 from src.domain.value_objects import (
     DiffAmount,
@@ -30,6 +39,7 @@ from src.domain.value_objects import (
 )
 
 __all__ = [
+    # Value Objects
     "DiffAmount",
     "DiscrepancyStatus",
     "ExcelFileChecksum",
@@ -39,4 +49,10 @@ __all__ = [
     "StoreId",
     "TelegramUserId",
     "TenantId",
+    # Entities
+    "DiscrepancyItem",
+    "InventoryItem",
+    "InventorySnapshot",
+    "TelegramUser",
+    "Tenant",
 ]
