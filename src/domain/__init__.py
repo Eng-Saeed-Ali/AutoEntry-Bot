@@ -11,12 +11,24 @@ Exports:
       ItemName, DiffAmount, ExcelFileChecksum, DiscrepancyStatus
     - Entities: Tenant, InventoryItem, DiscrepancyItem,
       InventorySnapshot, TelegramUser
-    - Ports: (Phase 1.4 — `src.domain.ports`)
+    - Exceptions: DomainError, InvalidSheetSchemaError, SheetEmptyError,
+      TenantNotFoundError, UnauthorizedUserError, ReconciliationError
+    - Ports: FileProcessingPort, AuthVerificationPort, FileParserPort,
+      InventoryRepositoryPort, TenantRepositoryPort, ReportExporterPort,
+      NotificationPort
     - Services: (Phase 1.6 — `src.domain.services`)
-    - Exceptions: (Phase 1.3 — `src.domain.exceptions`)
 """
 
 from __future__ import annotations
+
+from src.domain.exceptions import (
+    DomainError,
+    InvalidSheetSchemaError,
+    ReconciliationError,
+    SheetEmptyError,
+    TenantNotFoundError,
+    UnauthorizedUserError,
+)
 
 from src.domain.models import (
     DiscrepancyItem,
@@ -24,6 +36,16 @@ from src.domain.models import (
     InventorySnapshot,
     TelegramUser,
     Tenant,
+)
+
+from src.domain.ports import (
+    AuthVerificationPort,
+    FileParserPort,
+    FileProcessingPort,
+    InventoryRepositoryPort,
+    NotificationPort,
+    ReportExporterPort,
+    TenantRepositoryPort,
 )
 
 from src.domain.value_objects import (
@@ -55,4 +77,19 @@ __all__ = [
     "InventorySnapshot",
     "TelegramUser",
     "Tenant",
+    # Exceptions
+    "DomainError",
+    "InvalidSheetSchemaError",
+    "ReconciliationError",
+    "SheetEmptyError",
+    "TenantNotFoundError",
+    "UnauthorizedUserError",
+    # Ports
+    "AuthVerificationPort",
+    "FileParserPort",
+    "FileProcessingPort",
+    "InventoryRepositoryPort",
+    "NotificationPort",
+    "ReportExporterPort",
+    "TenantRepositoryPort",
 ]
