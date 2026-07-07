@@ -16,6 +16,9 @@ Exports:
     - Ports: FileProcessingPort, AuthVerificationPort, FileParserPort,
       InventoryRepositoryPort, TenantRepositoryPort, ReportExporterPort,
       NotificationPort
+    - DTOs: ParsedRowDTO, ParsedSheetDTO, DiscrepancyRowDTO,
+      ReportResultDTO, AuthContextDTO, ReconciliationSummaryDTO,
+      ProcessResultDTO
     - Services: (Phase 1.6 — `src.domain.services`)
 """
 
@@ -46,6 +49,16 @@ from src.domain.ports import (
     NotificationPort,
     ReportExporterPort,
     TenantRepositoryPort,
+)
+
+from src.domain.schemas import (
+    AuthContextDTO,
+    DiscrepancyRowDTO,
+    ParsedRowDTO,
+    ParsedSheetDTO,
+    ProcessResultDTO,
+    ReconciliationSummaryDTO,
+    ReportResultDTO,
 )
 
 from src.domain.value_objects import (
@@ -92,4 +105,12 @@ __all__ = [
     "NotificationPort",
     "ReportExporterPort",
     "TenantRepositoryPort",
+    # DTOs
+    "AuthContextDTO",
+    "DiscrepancyRowDTO",
+    "ParsedRowDTO",
+    "ParsedSheetDTO",
+    "ProcessResultDTO",
+    "ReconciliationSummaryDTO",
+    "ReportResultDTO",
 ]
