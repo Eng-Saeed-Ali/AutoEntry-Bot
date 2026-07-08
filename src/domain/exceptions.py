@@ -271,3 +271,45 @@ class ReconciliationError(DomainError):
             f"detail={self.detail!r}"
             f")"
         )
+
+
+# ---------------------------------------------------------------------------
+# 5. Infrastructure-Aware Domain Exception
+# ---------------------------------------------------------------------------
+
+
+class DatabaseError(DomainError):
+    """Raised when an infrastructure database operation fails.
+
+    This exception allows the Application layer to catch
+    ``DatabaseError`` without importing SQLAlchemy or knowing
+    about ``IntegrityError`` / ``OperationalError``.  The
+    infrastructure adapter maps concrete DB driver exceptions
+    into this domain-safe type.
+
+    Parameters:
+        message: Human-readable failure description.
+        original_exception: The string representation of the
+            underlying DB driver exception (for logging/debugging).
+            Optional — may be ``None`` when the failure context
+            is self-describing.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        original_exception: str | None = None,
+    ) -> None:
+        self.original_exception = original_exception
+        msg_parts = [message]
+        if original_exception is not None:
+            msg_parts.append(f"| original={original_exception}")
+        super().__init__(" ".join(msg_parts))
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.__class__.__name__}("
+            f"message={self.message!r}, "
+            f"original_exception={self.original_exception!r}"
+            f")"
+        )
