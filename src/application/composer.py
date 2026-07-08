@@ -35,7 +35,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import structlog
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -43,23 +42,22 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+import structlog
 
+from src.application.use_cases.process_inventory import ProcessInventoryUseCase
 from src.config.settings import settings
 from src.domain.exceptions import TenantNotFoundError, UnauthorizedUserError
 from src.domain.ports import (
     AuthVerificationPort,
     FileParserPort,
-    InventoryRepositoryPort,
     NotificationPort,
     ReportExporterPort,
 )
 from src.domain.schemas import AuthContextDTO, DiscrepancyRowDTO, ReportResultDTO
-from src.domain.value_objects import StoreId, TelegramUserId, TenantId
+from src.domain.value_objects import StoreId, TelegramUserId
 from src.infrastructure.notifications.telegram_notifier import TelegramNotificationAdapter
 from src.infrastructure.parsers.excel_parser import PolarsExcelParser
 from src.infrastructure.repositories.postgres_repository import PostgresInventoryRepository
-
-from src.application.use_cases.process_inventory import ProcessInventoryUseCase
 
 # ---------------------------------------------------------------------------
 # Logger

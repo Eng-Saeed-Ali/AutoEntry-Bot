@@ -75,8 +75,8 @@ from src.domain.models import (
     Tenant,
 )
 from src.domain.value_objects import (
-    TenantId,
     TelegramUserId,
+    TenantId,
 )
 
 if TYPE_CHECKING:

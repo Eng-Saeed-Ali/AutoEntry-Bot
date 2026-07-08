@@ -43,7 +43,7 @@ import polars as pl
 # validation and manual fallback without repeating the import attempt
 # on every call.
 try:
-    import pandera  # availability probe only  # noqa: F401
+    import pandera  # availability probe only
     import pandera.polars  # type: ignore[import-untyped]  # noqa: F401
     HAS_PANDERA: bool = True
 except (ImportError, AttributeError):
@@ -51,21 +51,21 @@ except (ImportError, AttributeError):
 
 from src.domain.exceptions import InvalidSheetSchemaError, SheetEmptyError
 from src.domain.ports import FileParserPort
-from src.domain.schemas import ParsedRowDTO, ParsedSheetDTO
+from src.domain.schemas import (
+    EXCEL_COLUMN_DTYPE_MAP,
+    EXPECTED_EXCEL_COLUMNS,
+    ParsedRowDTO,
+    ParsedSheetDTO,
+)
 
 # ---------------------------------------------------------------------------
 # Schema Definition
 # ---------------------------------------------------------------------------
 
-# The four required columns as specified by ARCHITECTURE.md Step 3.
-REQUIRED_COLUMNS: tuple[str, str, str, str] = ("SKU", "Item_Name", "System_Qty", "Actual_Qty")
+# Canonical column names from the domain layer — single source of truth.
+REQUIRED_COLUMNS: tuple[str, str, str, str] = EXPECTED_EXCEL_COLUMNS
 
-COLUMN_DTYPE_MAP: dict[str, type] = {
-    "SKU": str,
-    "Item_Name": str,
-    "System_Qty": int,
-    "Actual_Qty": int,
-}
+COLUMN_DTYPE_MAP: dict[str, type] = dict(EXCEL_COLUMN_DTYPE_MAP)
 
 # ---------------------------------------------------------------------------
 # Pandera Schema
@@ -95,36 +95,38 @@ def _build_pandera_schema() -> object | None:
     try:
         import pandera.polars as pa_polars  # type: ignore[import-untyped]
 
+        sku, item_name, system_qty, actual_qty = EXPECTED_EXCEL_COLUMNS
+
         # ── Procedural schema: one Column per required field ──
         _inventory_schema = pa_polars.DataFrameSchema(
             columns={
-                "SKU": pa_polars.Column(
+                sku: pa_polars.Column(
                     pl.Utf8,
                     nullable=False,
                     coerce=True,
-                    title="SKU",
+                    title=sku,
                     description="Stock Keeping Unit — alphanumeric identifier (e.g., 'ABC-123').",
                 ),
-                "Item_Name": pa_polars.Column(
+                item_name: pa_polars.Column(
                     pl.Utf8,
                     nullable=False,
                     coerce=True,
-                    title="Item_Name",
+                    title=item_name,
                     description="Human-readable product/item name.",
                 ),
-                "System_Qty": pa_polars.Column(
+                system_qty: pa_polars.Column(
                     pl.Int64,
                     nullable=False,
                     coerce=True,
-                    title="System_Qty",
+                    title=system_qty,
                     description="Expected quantity according to the ERP/system (non-negative).",
                     checks=pa_polars.Check.greater_than_or_equal_to(0),
                 ),
-                "Actual_Qty": pa_polars.Column(
+                actual_qty: pa_polars.Column(
                     pl.Int64,
                     nullable=False,
                     coerce=True,
-                    title="Actual_Qty",
+                    title=actual_qty,
                     description="Physically counted quantity (non-negative).",
                     checks=pa_polars.Check.greater_than_or_equal_to(0),
                 ),
@@ -235,12 +237,14 @@ class PolarsExcelParser(FileParserPort):
         """
         rows: list[ParsedRowDTO] = []
 
+        sku, item_name, system_qty, actual_qty = EXPECTED_EXCEL_COLUMNS
+
         for row in df.iter_rows(named=True):
             dto = ParsedRowDTO(
-                sku=str(row["SKU"]),
-                item_name=str(row["Item_Name"]),
-                system_qty=int(row["System_Qty"]),
-                actual_qty=int(row["Actual_Qty"]),
+                sku=str(row[sku]),
+                item_name=str(row[item_name]),
+                system_qty=int(row[system_qty]),
+                actual_qty=int(row[actual_qty]),
             )
             rows.append(dto)
 
@@ -342,10 +346,7 @@ class PolarsExcelParser(FileParserPort):
                             if "not in dataframe" in reason or "missing" in reason:
                                 if col not in missing:
                                     missing.append(f"'{col}'")
-                            elif "not allowed" in reason or "unexpected" in reason:
-                                if col not in unexpected:
-                                    unexpected.append(f"'{col}'")
-                            elif col not in REQUIRED_COLUMNS:
+                            elif "not allowed" in reason or "unexpected" in reason or col not in REQUIRED_COLUMNS:
                                 if col not in unexpected:
                                     unexpected.append(f"'{col}'")
 

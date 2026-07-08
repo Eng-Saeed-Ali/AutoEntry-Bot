@@ -45,10 +45,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from structlog.typing import BoundLogger
 
-import structlog
-
 from aiogram import Bot
 from aiogram.types import BufferedInputFile
+import structlog
 
 from src.domain.ports import NotificationPort
 from src.domain.schemas import ReportResultDTO

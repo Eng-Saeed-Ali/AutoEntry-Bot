@@ -52,39 +52,29 @@ For every update::
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Awaitable, Callable
 
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject, Update
+import structlog
 
 from src.domain.exceptions import TenantNotFoundError, UnauthorizedUserError
 from src.domain.ports import AuthVerificationPort
 from src.domain.schemas import AuthContextDTO
 from src.domain.value_objects import TelegramUserId
+from src.presentation.telegram.types import DATA_KEY_AUTH, AiogramDataDict
 
 # ---------------------------------------------------------------------------
 # Logger
 # ---------------------------------------------------------------------------
 
-logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Well-known data key (mirrors handlers.py::DATA_KEY_AUTH)
-# ---------------------------------------------------------------------------
-
-DATA_KEY_AUTH = "auth_context"
-"""Key used to store/retrieve ``AuthContextDTO`` in aiogram ``data``.
-
-Must match the constant in ``src.presentation.telegram.handlers``
-so handlers can resolve the auth context injected here.
-"""
+logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Middleware
 # ---------------------------------------------------------------------------
 
-HandlerCallable = Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]]
+HandlerCallable = Callable[[TelegramObject, AiogramDataDict], Awaitable[Any]]
 """Type alias for the next handler in the aiogram middleware chain."""
 
 

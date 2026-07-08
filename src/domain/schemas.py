@@ -25,10 +25,6 @@ Design Principles:
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 # Value Objects are imported for DTOs that sit within the
@@ -37,6 +33,28 @@ from pydantic import BaseModel, Field
 # these fields are already authenticated and validated by the time
 # this DTO is constructed).
 from src.domain.value_objects import StoreId, TelegramUserId, TenantId
+
+# ---------------------------------------------------------------------------
+# Shared Excel Column Constants
+# ---------------------------------------------------------------------------
+# These are the canonical column names expected in every uploaded inventory
+# Excel file.  They live in the domain layer so that infrastructure parsers,
+# presentation error messages, and future exporters all reference a single
+# source of truth — no duplicated magic strings across layers.
+
+EXPECTED_EXCEL_COLUMNS: tuple[str, str, str, str] = (
+    "SKU",
+    "Item_Name",
+    "System_Qty",
+    "Actual_Qty",
+)
+
+EXCEL_COLUMN_DTYPE_MAP: dict[str, type] = {
+    "SKU": str,
+    "Item_Name": str,
+    "System_Qty": int,
+    "Actual_Qty": int,
+}
 
 # ---------------------------------------------------------------------------
 # 1. ParsedRowDTO  (Raw row from Excel sheet)

@@ -26,20 +26,19 @@ from __future__ import annotations
 import asyncio
 import sys
 
-import structlog
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
-
-from src.config.settings import settings
-from src.infrastructure.logging.setup import setup_logging
+import structlog
 
 # -- Application Composer (Phase 5 wiring) -------------------------------
 from src.application.composer import build_application_state, shutdown_application_state
+from src.config.settings import settings
+from src.infrastructure.logging.setup import setup_logging
 
 # -- Presentation layer (Telegram) ---------------------------------------
 from src.presentation.telegram import telegram_router
-from src.presentation.telegram.handlers import DATA_KEY_USE_CASE
 from src.presentation.telegram.middleware import TenantAuthMiddleware
+from src.presentation.telegram.types import DATA_KEY_MAX_FILE_SIZE, DATA_KEY_USE_CASE
 
 # ---------------------------------------------------------------------------
 # Logger (obtained AFTER setup_logging)
@@ -115,11 +114,18 @@ async def main() -> None:
     logger.info("middleware.registered", middleware="TenantAuthMiddleware")
 
     # ------------------------------------------------------------------
-    # Step 5: Inject Use Case into Dispatcher Workflow Data
+    # Step 5: Inject Use Case + Config into Dispatcher Workflow Data
     # ------------------------------------------------------------------
     use_case = deps["process_inventory_use_case"]
     dp[DATA_KEY_USE_CASE] = use_case
     logger.info("dispatcher.data.injected", key=DATA_KEY_USE_CASE)
+
+    dp[DATA_KEY_MAX_FILE_SIZE] = settings.excel_max_file_size_mb
+    logger.info(
+        "dispatcher.data.injected",
+        key=DATA_KEY_MAX_FILE_SIZE,
+        value=settings.excel_max_file_size_mb,
+    )
 
     # ------------------------------------------------------------------
     # Step 6: Include the Telegram Router

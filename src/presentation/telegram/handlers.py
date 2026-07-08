@@ -48,12 +48,12 @@ than crashing.  This is a safe degrade for early development phases.
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from aiogram import Bot, F, Router
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import CommandStart
 from aiogram.types import ContentType, Message
+import structlog
 
 from src.application.use_cases.process_inventory import ProcessInventoryUseCase
 from src.domain.exceptions import (
@@ -62,8 +62,18 @@ from src.domain.exceptions import (
     SheetEmptyError,
     UnauthorizedUserError,
 )
-from src.domain.schemas import AuthContextDTO, ProcessResultDTO
+from src.domain.schemas import (
+    EXPECTED_EXCEL_COLUMNS,
+    AuthContextDTO,
+    ProcessResultDTO,
+)
 from src.domain.value_objects import TenantId
+from src.presentation.telegram.types import (
+    DATA_KEY_AUTH,
+    DATA_KEY_MAX_FILE_SIZE,
+    DATA_KEY_USE_CASE,
+    AiogramDataDict,
+)
 
 if TYPE_CHECKING:
     from aiogram.types import File
@@ -72,7 +82,7 @@ if TYPE_CHECKING:
 # Logger
 # ---------------------------------------------------------------------------
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Router
@@ -87,22 +97,12 @@ at startup.
 """
 
 # ---------------------------------------------------------------------------
-# Well-known aiogram data keys for dependency injection
-# ---------------------------------------------------------------------------
-
-DATA_KEY_USE_CASE = "process_inventory_use_case"
-"""Key used to store/retrieve ``ProcessInventoryUseCase`` in aiogram ``data``."""
-
-DATA_KEY_AUTH = "auth_context"
-"""Key used to store/retrieve ``AuthContextDTO`` (set by auth middleware)."""
-
-# ---------------------------------------------------------------------------
 # Helper: Resolve the use case from aiogram data
 # ---------------------------------------------------------------------------
 
 
 def _get_use_case(
-    data: dict[str, object],
+    data: AiogramDataDict,
     chat_id: int,
 ) -> ProcessInventoryUseCase | None:
     """Retrieve the wired ``ProcessInventoryUseCase`` from aiogram data.
@@ -141,7 +141,7 @@ def _get_use_case(
     return use_case  # type: ignore[return-value]
 
 
-def _get_auth_context(data: dict[str, object]) -> AuthContextDTO | None:
+def _get_auth_context(data: AiogramDataDict) -> AuthContextDTO | None:
     """Retrieve the ``AuthContextDTO`` from aiogram data.
 
     Populated by the auth middleware (Task 4.3).  Returns ``None``
@@ -167,14 +167,23 @@ def _get_auth_context(data: dict[str, object]) -> AuthContextDTO | None:
 # Error message helpers — map domain exceptions to user-facing replies
 # ---------------------------------------------------------------------------
 
-_EXPECTED_COLUMNS = (
-    "SKU",
-    "Item_Name",
-    "System_Qty",
-    "Actual_Qty",
-)
+# Canonical Excel column names from domain layer — single source of truth.
+_EXPECTED_COLUMNS = EXPECTED_EXCEL_COLUMNS
 _EXPECTED_COLUMNS_TEXT = ", ".join(_EXPECTED_COLUMNS)
-_MAX_FILE_SIZE_MB = 5
+
+# Default max file size in MB — matches the default in config/settings.py.
+# Will be overridden by the DI-injected value when available.
+_DEFAULT_MAX_FILE_SIZE_MB = 10
+
+
+def _get_max_file_size(data: AiogramDataDict) -> int:
+    """Retrieve the max file size (MB) from the aiogram data dict.
+
+    Falls back to the default (10 MB) if the setting was not injected
+    at startup — ensures the handler works even before DI wiring is
+    complete.
+    """
+    return data.get(DATA_KEY_MAX_FILE_SIZE, _DEFAULT_MAX_FILE_SIZE_MB)
 
 
 def _format_domain_error(exc: DomainError) -> str:
@@ -266,7 +275,7 @@ async def start_command(message: Message) -> None:
         "🔐 *Access Control:* Only whitelisted Telegram users can use this bot. "
         "If you receive an 'Access Denied' message, contact your system administrator.",
     ]
-    welcome_text = "\n".join(welcome_lines).format(max_size_mb=_MAX_FILE_SIZE_MB)
+    welcome_text = "\n".join(welcome_lines).format(max_size_mb=_DEFAULT_MAX_FILE_SIZE_MB)
 
     await message.answer(
         welcome_text,
@@ -281,7 +290,7 @@ async def start_command(message: Message) -> None:
 
 
 @router.message(F.content_type == ContentType.DOCUMENT)
-async def document_handler(message: Message, bot: Bot, data: dict[str, object]) -> None:
+async def document_handler(message: Message, bot: Bot, data: AiogramDataDict) -> None:
     """Handle an incoming document (Excel file) upload from a Telegram user.
 
     This is the **primary inbound adapter** for the inventory processing
@@ -350,12 +359,13 @@ async def document_handler(message: Message, bot: Bot, data: dict[str, object]) 
     # ------------------------------------------------------------------
     # Guard 2: File size validation
     # ------------------------------------------------------------------
-    max_bytes = _MAX_FILE_SIZE_MB * 1024 * 1024
+    max_size_mb = _get_max_file_size(data)
+    max_bytes = max_size_mb * 1024 * 1024
     if file_size > max_bytes:
         await message.answer(
             f"⚠️ *File Too Large*\n\n"
             f"Your file is `{file_size / 1024 / 1024:.1f} MB`.  "
-            f"The maximum allowed size is `{_MAX_FILE_SIZE_MB} MB`.  "
+            f"The maximum allowed size is `{max_size_mb} MB`.  "
             f"Please split your data into smaller files.",
             parse_mode="Markdown",
         )

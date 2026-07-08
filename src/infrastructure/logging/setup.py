@@ -20,12 +20,10 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Any
 
 import structlog
 
 from src.config.settings import settings
-
 
 # ---------------------------------------------------------------------------
 # Processor chain — runs on every log call, left to right

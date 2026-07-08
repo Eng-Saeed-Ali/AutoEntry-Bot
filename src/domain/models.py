@@ -20,9 +20,9 @@ Design Principles:
 
 from __future__ import annotations
 
-import uuid
 from datetime import UTC, datetime
 from typing import Literal
+import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 

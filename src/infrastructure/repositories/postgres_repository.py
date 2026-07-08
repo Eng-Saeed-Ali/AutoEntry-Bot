@@ -41,10 +41,6 @@ from src.domain.ports import (
     TenantRepositoryPort,
 )
 from src.domain.value_objects import (
-    ItemName,
-    Quantity,
-    Sku,
-    StoreId,
     TelegramUserId,
     TenantId,
 )

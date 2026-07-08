@@ -16,8 +16,8 @@ business rules** — those belong to the ``src.domain`` layer
 from __future__ import annotations
 
 import time
-import uuid
 from typing import Optional
+import uuid
 
 from src.domain.exceptions import DomainError
 from src.domain.models import (
@@ -34,7 +34,6 @@ from src.domain.ports import (
     ReportExporterPort,
 )
 from src.domain.schemas import (
-    ParsedRowDTO,
     ParsedSheetDTO,
     ProcessResultDTO,
     ReportResultDTO,
