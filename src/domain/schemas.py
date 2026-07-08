@@ -203,6 +203,10 @@ class ReportResultDTO(BaseModel, frozen=True, validate_assignment=False):
         default_factory=list,
         description="Only the rows with discrepancies. May be empty if everything matches.",
     )
+    excel_bytes: bytes | None = Field(
+        default=None,
+        description="Generated Excel report file bytes (None if exporter not yet built or export skipped).",
+    )
 
 
 # ---------------------------------------------------------------------------
