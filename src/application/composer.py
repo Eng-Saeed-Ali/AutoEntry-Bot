@@ -22,18 +22,16 @@ What it produces:
         # deps["db_engine"]               → AsyncEngine (for shutdown)
 
 Stubs for missing adapters:
-    - ``StubExcelExporter``: implements ``ReportExporterPort``,
-      returns ``b"dummy_excel_bytes"``.  Replaced when the real
-      ``ExcelExporter`` is built (Phase 3 gap).
     - ``StubAuthUseCase``: implements ``AuthVerificationPort``,
       delegates directly to ``PostgresInventoryRepository.get_by_telegram_id()``
       and converts the result to an ``AuthContextDTO``.  Bridging the
       gap until ``VerifyTelegramUserUseCase`` is built (Task 2.2).
+
+Note: ``StubExcelExporter`` was replaced by ``PolarsReportExporter``
+      (Phase 3 gap closed — see ``src/infrastructure/exporters/excel_exporter.py``).
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 from aiogram import Bot
 from sqlalchemy.ext.asyncio import (
@@ -53,8 +51,9 @@ from src.domain.ports import (
     NotificationPort,
     ReportExporterPort,
 )
-from src.domain.schemas import AuthContextDTO, DiscrepancyRowDTO, ReportResultDTO
+from src.domain.schemas import AuthContextDTO
 from src.domain.value_objects import StoreId, TelegramUserId
+from src.infrastructure.exporters.excel_exporter import PolarsReportExporter
 from src.infrastructure.notifications.telegram_notifier import TelegramNotificationAdapter
 from src.infrastructure.parsers.excel_parser import PolarsExcelParser
 from src.infrastructure.repositories.postgres_repository import PostgresInventoryRepository
@@ -66,49 +65,8 @@ logger = structlog.get_logger(__name__)
 
 
 # ============================================================================
-# Stub adapters — bridging Phase 3/Phase 2 gaps
+# Stub adapter — bridging Phase 2 gap
 # ============================================================================
-
-
-class StubExcelExporter(ReportExporterPort):
-    """Temporary stub implementing ``ReportExporterPort``.
-
-    Returns a minimal ``ReportResultDTO`` with placeholder ``excel_bytes``
-    (``b"dummy_excel_bytes"``) and a simple Markdown summary derived from
-    the snapshot's own ``build_markdown_report()`` method.
-
-    This stub is replaced by the real ``ExcelExporter`` once it is built
-    (Infrastructure Phase 3 gap — ``src/infrastructure/excel_exporter``).
-    """
-
-    async def export(self, snapshot: Any) -> ReportResultDTO:
-        """Build a stub report from an ``InventorySnapshot``.
-
-        Parameters
-        ----------
-        snapshot : InventorySnapshot
-            The domain aggregate containing items + discrepancies.
-
-        Returns
-        -------
-        ReportResultDTO
-            Minimal report with dummy Excel bytes and the snapshot's
-            own Markdown summary.
-        """
-        logger.debug(
-            "StubExcelExporter.export called — returning dummy bytes.",
-            snapshot_id=str(snapshot.id),
-        )
-        discrepancy_rows = _build_discrepancy_rows(snapshot)
-        return ReportResultDTO(
-            tenant_id=snapshot.tenant_id.value,
-            store_id=snapshot.store_id.value,
-            total_items=snapshot.total_items,
-            total_discrepancies=len(snapshot.discrepancies),
-            summary_markdown=snapshot.build_markdown_report(),
-            discrepancy_rows=discrepancy_rows,
-            excel_bytes=b"dummy_excel_bytes",
-        )
 
 
 class StubAuthUseCase(AuthVerificationPort):
@@ -195,7 +153,7 @@ async def build_application_state(bot: Bot) -> dict[str, object]:
        - ``PolarsExcelParser``           (FileParserPort)
        - ``PostgresInventoryRepository`` (InventoryRepositoryPort + TenantRepositoryPort)
        - ``TelegramNotificationAdapter`` (NotificationPort, injected with *bot*)
-       - ``StubExcelExporter``           (ReportExporterPort — temporary)
+       - ``PolarsReportExporter``        (ReportExporterPort — real Polars adapter)
        - ``StubAuthUseCase``             (AuthVerificationPort — temporary)
     3. Wire all five outbound ports into ``ProcessInventoryUseCase``.
     4. Return a dictionary containing the use case, auth stub, engine,
@@ -256,9 +214,10 @@ async def build_application_state(bot: Bot) -> dict[str, object]:
     notification_adapter: NotificationPort = TelegramNotificationAdapter(bot)
     logger.debug("adapter.instantiated", adapter="TelegramNotificationAdapter")
 
-    # 2d. Stub Excel Exporter (ReportExporterPort) — temporary bridge
-    exporter_adapter: ReportExporterPort = StubExcelExporter()
-    logger.debug("adapter.instantiated", adapter="StubExcelExporter")
+    # 2d. Real Polars Excel Exporter (ReportExporterPort)
+    #     Replaces the old StubExcelExporter — Phase 3 gap closed.
+    exporter_adapter: ReportExporterPort = PolarsReportExporter()
+    logger.debug("adapter.instantiated", adapter="PolarsReportExporter")
 
     # 2e. Stub Auth Use Case (AuthVerificationPort) — wraps repo directly
     #     Bridges the missing VerifyTelegramUserUseCase (Task 2.2).
@@ -293,41 +252,8 @@ async def build_application_state(bot: Bot) -> dict[str, object]:
 
 
 # ============================================================================
-# Private helpers
+# Shutdown
 # ============================================================================
-
-
-def _build_discrepancy_rows(snapshot: Any) -> list[DiscrepancyRowDTO]:
-    """Convert an ``InventorySnapshot``'s discrepancies into DTOs.
-
-    This is a private helper extracted so the stub exporter can
-    produce valid ``DiscrepancyRowDTO`` items from the domain
-    aggregate's ``discrepancies`` collection (which holds
-    ``DiscrepancyItem`` entities, not DTOs).
-
-    Parameters
-    ----------
-    snapshot : InventorySnapshot
-        The domain aggregate root.
-
-    Returns
-    -------
-    list[DiscrepancyRowDTO]
-        One DTO per discrepancy item in the snapshot.
-    """
-    rows: list[DiscrepancyRowDTO] = []
-    for disc in snapshot.discrepancies:
-        rows.append(
-            DiscrepancyRowDTO(
-                sku=disc.sku,
-                item_name=disc.item_name,
-                system_qty=disc.inventory_item.system_qty.value,
-                actual_qty=disc.inventory_item.actual_qty.value,
-                diff_amount=disc.diff.value,
-                status=disc.status.value,
-            )
-        )
-    return rows
 
 
 async def shutdown_application_state(deps: dict[str, object]) -> None:
